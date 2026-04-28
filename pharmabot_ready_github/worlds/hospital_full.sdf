@@ -1,0 +1,979 @@
+<?xml version="1.0" ?>
+<!--
+╔══════════════════════════════════════════════════════════════════════════╗
+║  PharmaBot — Hôpital Complet  (Gazebo Sim / Ignition Fortress / SDF 1.9)║
+║                                                                          ║
+║  Layout (vue du dessus, 1 unité = 1 m) :                                ║
+║                                                                          ║
+║   Y                                                                      ║
+║   ^  +──────────────────────────────────+                               ║
+║   │  │  CONSULTATION  │ COULOIR │ REANIM│                               ║
+║   │  +────────────────+─────────+───────+                               ║
+║  10  │    COULOIR CENTRAL (2.5m large)  │                               ║
+║   │  +────────────────+─────────+───────+                               ║
+║   │  │   PHARMACIE    │ COULOIR │ URGENCES│                             ║
+║   │  +────────────────+─────────+────────+                              ║
+║   0──────────────────────────────────────────> X                        ║
+║      0               10        15      22                               ║
+║                                                                          ║
+║  Pièces :                                                                ║
+║   • Pharmacie       (0,0)     → (10,8)    vert                          ║
+║   • Consultation    (0,12)    → (10,20)   bleu                          ║
+║   • Réanimation     (14,12)   → (22,20)   rouge                         ║
+║   • Urgences        (14,0)    → (22,8)    orange                        ║
+║   • Couloir central (0,8)     → (22,12)   blanc                         ║
+║   • Couloir vertical(10,0)    → (14,20)   blanc                         ║
+╚══════════════════════════════════════════════════════════════════════════╝
+-->
+<sdf version="1.9">
+<world name="hospital_full">
+
+  <!-- ═══ PHYSICS ═══ -->
+  <physics name="fast_physics" type="ode">
+    <max_step_size>0.002</max_step_size>
+    <real_time_factor>1.0</real_time_factor>
+    <real_time_update_rate>500</real_time_update_rate>
+    <ode>
+      <solver><type>quick</type><iters>50</iters></solver>
+    </ode>
+  </physics>
+
+  <plugin filename="gz-sim-physics-system"           name="gz::sim::systems::Physics"/>
+  <plugin filename="gz-sim-user-commands-system"     name="gz::sim::systems::UserCommands"/>
+  <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+  <plugin filename="gz-sim-sensors-system"           name="gz::sim::systems::Sensors">
+    <render_engine>ogre2</render_engine>
+  </plugin>
+  <plugin filename="gz-sim-contact-system"           name="gz::sim::systems::Contact"/>
+
+  <!-- ═══ LIGHTING ═══ -->
+  <scene>
+    <ambient>0.6 0.6 0.65 1</ambient>
+    <background>0.85 0.90 0.95 1</background>
+    <shadows>true</shadows>
+    <grid>false</grid>
+  </scene>
+
+  <!-- Soleil principal -->
+  <light name="sun" type="directional">
+    <cast_shadows>true</cast_shadows>
+    <pose>0 0 20 0 -0.3 0.5</pose>
+    <diffuse>0.95 0.92 0.88 1</diffuse>
+    <specular>0.3 0.3 0.3 1</specular>
+    <direction>-0.3 0.2 -0.9</direction>
+    <attenuation><range>100</range><constant>0.9</constant></attenuation>
+  </light>
+
+  <!-- Lumières plafond — couloir central -->
+  <light name="ceil_corr1" type="point">
+    <pose>5  10 2.7 0 0 0</pose>
+    <diffuse>1.0 0.98 0.94 1</diffuse>
+    <attenuation><range>8</range><constant>0.3</constant><linear>0.1</linear></attenuation>
+    <cast_shadows>false</cast_shadows>
+  </light>
+  <light name="ceil_corr2" type="point">
+    <pose>12 10 2.7 0 0 0</pose>
+    <diffuse>1.0 0.98 0.94 1</diffuse>
+    <attenuation><range>8</range><constant>0.3</constant><linear>0.1</linear></attenuation>
+    <cast_shadows>false</cast_shadows>
+  </light>
+  <light name="ceil_corr3" type="point">
+    <pose>18 10 2.7 0 0 0</pose>
+    <diffuse>1.0 0.98 0.94 1</diffuse>
+    <attenuation><range>8</range><constant>0.3</constant><linear>0.1</linear></attenuation>
+    <cast_shadows>false</cast_shadows>
+  </light>
+
+  <!-- Lumières salles -->
+  <light name="ceil_pharm" type="point">
+    <pose>5  4  2.8 0 0 0</pose>
+    <diffuse>0.9 1.0 0.9 1</diffuse>
+    <attenuation><range>10</range><constant>0.2</constant><linear>0.08</linear></attenuation>
+    <cast_shadows>false</cast_shadows>
+  </light>
+  <light name="ceil_consult" type="point">
+    <pose>5  16 2.8 0 0 0</pose>
+    <diffuse>0.9 0.9 1.0 1</diffuse>
+    <attenuation><range>10</range><constant>0.2</constant><linear>0.08</linear></attenuation>
+    <cast_shadows>false</cast_shadows>
+  </light>
+  <light name="ceil_reanim" type="point">
+    <pose>18 16 2.8 0 0 0</pose>
+    <diffuse>1.0 0.9 0.9 1</diffuse>
+    <attenuation><range>10</range><constant>0.2</constant><linear>0.08</linear></attenuation>
+    <cast_shadows>false</cast_shadows>
+  </light>
+  <light name="ceil_emerg" type="point">
+    <pose>18 4  2.8 0 0 0</pose>
+    <diffuse>1.0 0.95 0.85 1</diffuse>
+    <attenuation><range>10</range><constant>0.2</constant><linear>0.08</linear></attenuation>
+    <cast_shadows>false</cast_shadows>
+  </light>
+
+  <!-- ═══ SOL PRINCIPAL ═══ -->
+  <model name="ground_plane">
+    <static>true</static>
+    <link name="link">
+      <collision name="col">
+        <geometry><plane><normal>0 0 1</normal><size>40 30</size></plane></geometry>
+      </collision>
+      <visual name="vis">
+        <geometry><plane><normal>0 0 1</normal><size>40 30</size></plane></geometry>
+        <material>
+          <ambient>0.78 0.78 0.80 1</ambient>
+          <diffuse>0.78 0.78 0.80 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SOL COLORÉ PAR DÉPARTEMENT
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Pharmacie — vert clair -->
+  <model name="floor_pharmacy"><static>true</static><pose>5 4 0.005 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>10 8 0.01</size></box></geometry>
+      <material><ambient>0.82 0.95 0.82 1</ambient><diffuse>0.82 0.95 0.82 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Consultation — bleu très clair -->
+  <model name="floor_consult"><static>true</static><pose>5 16 0.005 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>10 8 0.01</size></box></geometry>
+      <material><ambient>0.82 0.88 0.98 1</ambient><diffuse>0.82 0.88 0.98 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Réanimation — rouge très clair -->
+  <model name="floor_reanim"><static>true</static><pose>18 16 0.005 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>8 8 0.01</size></box></geometry>
+      <material><ambient>0.98 0.84 0.84 1</ambient><diffuse>0.98 0.84 0.84 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Urgences — orange très clair -->
+  <model name="floor_emerg"><static>true</static><pose>18 4 0.005 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>8 8 0.01</size></box></geometry>
+      <material><ambient>0.99 0.91 0.78 1</ambient><diffuse>0.99 0.91 0.78 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Couloir horizontal -->
+  <model name="floor_corr_h"><static>true</static><pose>11 10 0.006 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>22 4 0.01</size></box></geometry>
+      <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Couloir vertical -->
+  <model name="floor_corr_v"><static>true</static><pose>12 10 0.007 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>4 20 0.01</size></box></geometry>
+      <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Lignes au sol couloir (guidage) -->
+  <model name="guide_line_1"><static>true</static><pose>12 5 0.012 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>0.15 8 0.005</size></box></geometry>
+      <material><ambient>0.4 0.6 1.0 1</ambient><diffuse>0.4 0.6 1.0 1</diffuse></material>
+    </visual></link></model>
+  <model name="guide_line_2"><static>true</static><pose>12 15 0.012 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>0.15 8 0.005</size></box></geometry>
+      <material><ambient>0.4 0.6 1.0 1</ambient><diffuse>0.4 0.6 1.0 1</diffuse></material>
+    </visual></link></model>
+  <model name="guide_line_h"><static>true</static><pose>7 10 0.012 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>10 0.15 0.005</size></box></geometry>
+      <material><ambient>0.4 0.6 1.0 1</ambient><diffuse>0.4 0.6 1.0 1</diffuse></material>
+    </visual></link></model>
+  <model name="guide_line_h2"><static>true</static><pose>17 10 0.012 0 0 0</pose>
+    <link name="link"><visual name="vis">
+      <geometry><box><size>10 0.15 0.005</size></box></geometry>
+      <material><ambient>0.4 0.6 1.0 1</ambient><diffuse>0.4 0.6 1.0 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MURS EXTÉRIEURS  (h=3.0 m, t=0.20 m)
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Nord -->
+  <model name="wall_N"><static>true</static><pose>11 20.1 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>22.2 0.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>22.2 0.2 3.0</size></box></geometry>
+        <material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse>
+        <specular>0.1 0.1 0.1 1</specular></material></visual>
+    </link></model>
+
+  <!-- Sud -->
+  <model name="wall_S"><static>true</static><pose>11 -0.1 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>22.2 0.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>22.2 0.2 3.0</size></box></geometry>
+        <material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Ouest -->
+  <model name="wall_W"><static>true</static><pose>-0.1 10 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 20.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 20.2 3.0</size></box></geometry>
+        <material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Est -->
+  <model name="wall_E"><static>true</static><pose>22.1 10 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 20.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 20.2 3.0</size></box></geometry>
+        <material><ambient>0.92 0.92 0.92 1</ambient><diffuse>0.92 0.92 0.92 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MURS INTÉRIEURS AVEC OUVERTURES POUR PORTES (1.2 m)
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Mur entre Pharmacie et couloir horizontal (y=8) -->
+  <!-- Ouverture de x=4.0 à x=5.2 -->
+  <model name="w_ph_s1"><static>true</static><pose>2 8 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>4.0 0.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>4.0 0.2 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_ph_s2"><static>true</static><pose>7.6 8 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>4.8 0.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>4.8 0.2 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <!-- Linteau porte pharmacie -->
+  <model name="w_ph_lintel"><static>true</static><pose>4.6 8 2.6 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.2 0.2 0.8</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.2 0.2 0.8</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Mur entre Consultation et couloir (y=12) -->
+  <!-- Ouverture de x=4.0 à x=5.2 -->
+  <model name="w_co_s1"><static>true</static><pose>2 12 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>4.0 0.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>4.0 0.2 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_co_s2"><static>true</static><pose>7.6 12 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>4.8 0.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>4.8 0.2 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_co_lintel"><static>true</static><pose>4.6 12 2.6 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.2 0.2 0.8</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.2 0.2 0.8</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Mur entre couloir vertical et Réanimation (x=14, coté N) -->
+  <!-- Ouverture y=14.0 à 15.2 -->
+  <model name="w_re_w1"><static>true</static><pose>14 17.4 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 5.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 5.2 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_re_w2"><static>true</static><pose>14 12.6 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 1.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 1.2 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_re_lintel"><static>true</static><pose>14 14.6 2.6 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 1.2 0.8</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 1.2 0.8</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Mur entre couloir vertical et Urgences (x=14, coté S) -->
+  <!-- Ouverture y=4.8 à 6.0 -->
+  <model name="w_em_w1"><static>true</static><pose>14 2 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 4.0 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 4.0 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_em_w2"><static>true</static><pose>14 7.2 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 2.4 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 2.4 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_em_lintel"><static>true</static><pose>14 5.4 2.6 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 1.2 0.8</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 1.2 0.8</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Mur entre Pharmacie et couloir vertical (x=10) -->
+  <!-- Ouverture y=5.5 à 6.7 -->
+  <model name="w_ph_e1"><static>true</static><pose>10 2.2 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 4.4 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 4.4 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_ph_e2"><static>true</static><pose>10 7.6 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 1.2 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 1.2 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_ph_e_lintel"><static>true</static><pose>10 6.1 2.6 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 1.2 0.8</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 1.2 0.8</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Mur entre Consultation et couloir vertical (x=10, nord) -->
+  <model name="w_co_e1"><static>true</static><pose>10 12.8 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 1.6 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 1.6 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_co_e2"><static>true</static><pose>10 17.8 1.5 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 4.4 3.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 4.4 3.0</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="w_co_e_lintel"><static>true</static><pose>10 13.9 2.6 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.2 1.2 0.8</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.2 1.2 0.8</size></box></geometry>
+        <material><ambient>0.88 0.88 0.88 1</ambient><diffuse>0.88 0.88 0.88 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PORTES (panneaux de porte colorés)
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Porte Pharmacie (y=8, x=4.6) -->
+  <model name="door_pharmacy"><static>true</static><pose>4.6 8.05 1.1 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.1 0.06 2.2</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.1 0.06 2.2</size></box></geometry>
+        <material><ambient>0.42 0.72 0.44 1</ambient><diffuse>0.42 0.72 0.44 1</diffuse>
+        <specular>0.3 0.5 0.3 1</specular></material></visual>
+    </link></model>
+  <!-- Vitre porte pharmacie -->
+  <model name="door_pharmacy_glass"><static>true</static><pose>4.6 8.03 1.6 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.6 0.04 0.9</size></box></geometry>
+      <material><ambient>0.7 0.9 0.9 0.5</ambient><diffuse>0.7 0.9 0.9 0.5</diffuse></material>
+    </visual></link></model>
+
+  <!-- Porte Consultation (y=12, x=4.6) -->
+  <model name="door_consult"><static>true</static><pose>4.6 11.95 1.1 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.1 0.06 2.2</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.1 0.06 2.2</size></box></geometry>
+        <material><ambient>0.38 0.52 0.80 1</ambient><diffuse>0.38 0.52 0.80 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Porte Réanimation (x=14, y=14.6) -->
+  <model name="door_reanim"><static>true</static><pose>14.05 14.6 1.1 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.06 1.1 2.2</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.06 1.1 2.2</size></box></geometry>
+        <material><ambient>0.80 0.26 0.26 1</ambient><diffuse>0.80 0.26 0.26 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Porte Urgences (x=14, y=5.4) -->
+  <model name="door_emerg"><static>true</static><pose>14.05 5.4 1.1 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.06 1.1 2.2</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.06 1.1 2.2</size></box></geometry>
+        <material><ambient>0.88 0.52 0.10 1</ambient><diffuse>0.88 0.52 0.10 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Porte entre Pharmacie et couloir vertical -->
+  <model name="door_ph_side"><static>true</static><pose>10.05 6.1 1.1 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.06 1.1 2.2</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.06 1.1 2.2</size></box></geometry>
+        <material><ambient>0.42 0.72 0.44 1</ambient><diffuse>0.42 0.72 0.44 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PLAFOND (semi-transparent)
+  ═══════════════════════════════════════════════════════ -->
+  <model name="ceiling"><static>true</static><pose>11 10 3.0 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>22.2 20.2 0.06</size></box></geometry>
+      <material><ambient>0.95 0.95 0.95 0.15</ambient><diffuse>0.95 0.95 0.95 0.15</diffuse></material>
+    </visual></link></model>
+
+  <!-- Luminaires plafond (géométrie visible) -->
+  <model name="lamp_corr1"><static>true</static><pose>5 10 2.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.6 0.2 0.06</size></box></geometry>
+      <material><ambient>1 1 0.9 1</ambient><diffuse>1 1 0.9 1</diffuse>
+      <emissive>0.8 0.8 0.6 1</emissive></material>
+    </visual></link></model>
+  <model name="lamp_corr2"><static>true</static><pose>12 10 2.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.6 0.2 0.06</size></box></geometry>
+      <material><ambient>1 1 0.9 1</ambient><diffuse>1 1 0.9 1</diffuse>
+      <emissive>0.8 0.8 0.6 1</emissive></material>
+    </visual></link></model>
+  <model name="lamp_pharm"><static>true</static><pose>5 4 2.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.6 0.2 0.06</size></box></geometry>
+      <material><ambient>1 1 0.9 1</ambient><diffuse>1 1 0.9 1</diffuse>
+      <emissive>0.8 0.8 0.6 1</emissive></material>
+    </visual></link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PHARMACIE — MOBILIER
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Comptoir d'accueil (L-shape simulé avec 2 boîtes) -->
+  <model name="pharma_counter_main"><static>true</static><pose>5 6.5 0.45 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>6.0 0.55 0.9</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>6.0 0.55 0.9</size></box></geometry>
+        <material><ambient>0.56 0.78 0.58 1</ambient><diffuse>0.56 0.78 0.58 1</diffuse>
+        <specular>0.3 0.4 0.3 1</specular></material></visual>
+    </link></model>
+  <!-- Plateau comptoir -->
+  <model name="pharma_counter_top"><static>true</static><pose>5 6.5 0.91 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>6.1 0.6 0.04</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>6.1 0.6 0.04</size></box></geometry>
+        <material><ambient>0.8 0.9 0.8 1</ambient><diffuse>0.8 0.9 0.8 1</diffuse>
+        <specular>0.5 0.6 0.5 1</specular></material></visual>
+    </link></model>
+  <!-- Retour comptoir -->
+  <model name="pharma_counter_return"><static>true</static><pose>7.5 5.7 0.45 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.0 1.5 0.9</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.0 1.5 0.9</size></box></geometry>
+        <material><ambient>0.56 0.78 0.58 1</ambient><diffuse>0.56 0.78 0.58 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Étagères médicaments (3 colonnes × 2 rangées) -->
+  <!-- Colonne 1 -->
+  <model name="shelf1_back"><static>true</static><pose>1.0 1.5 1.0 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.3 1.8 2.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.3 1.8 2.0</size></box></geometry>
+        <material><ambient>0.62 0.78 0.64 1</ambient><diffuse>0.62 0.78 0.64 1</diffuse></material></visual>
+    </link></model>
+  <!-- Planches étagère 1 -->
+  <model name="shelf1_p1"><static>true</static><pose>1.0 1.5 0.45 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.35 1.85 0.03</size></box></geometry>
+      <material><ambient>0.78 0.88 0.78 1</ambient><diffuse>0.78 0.88 0.78 1</diffuse></material>
+    </visual></link></model>
+  <model name="shelf1_p2"><static>true</static><pose>1.0 1.5 1.0 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.35 1.85 0.03</size></box></geometry>
+      <material><ambient>0.78 0.88 0.78 1</ambient><diffuse>0.78 0.88 0.78 1</diffuse></material>
+    </visual></link></model>
+  <model name="shelf1_p3"><static>true</static><pose>1.0 1.5 1.55 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.35 1.85 0.03</size></box></geometry>
+      <material><ambient>0.78 0.88 0.78 1</ambient><diffuse>0.78 0.88 0.78 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Colonne 2 -->
+  <model name="shelf2_back"><static>true</static><pose>1.0 4.2 1.0 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.3 1.8 2.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.3 1.8 2.0</size></box></geometry>
+        <material><ambient>0.62 0.78 0.64 1</ambient><diffuse>0.62 0.78 0.64 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Boîtes médicaments colorées sur étagères -->
+  <model name="med_box_r1"><static>true</static><pose>1.15 1.2 0.55 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.12 0.18 0.15</size></box></geometry>
+      <material><ambient>0.9 0.2 0.2 1</ambient><diffuse>0.9 0.2 0.2 1</diffuse></material>
+    </visual></link></model>
+  <model name="med_box_b1"><static>true</static><pose>1.15 1.5 0.55 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.12 0.18 0.15</size></box></geometry>
+      <material><ambient>0.2 0.4 0.9 1</ambient><diffuse>0.2 0.4 0.9 1</diffuse></material>
+    </visual></link></model>
+  <model name="med_box_y1"><static>true</static><pose>1.15 1.8 0.55 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.12 0.18 0.15</size></box></geometry>
+      <material><ambient>0.9 0.85 0.1 1</ambient><diffuse>0.9 0.85 0.1 1</diffuse></material>
+    </visual></link></model>
+  <model name="med_box_g1"><static>true</static><pose>1.15 1.2 1.1 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.12 0.18 0.15</size></box></geometry>
+      <material><ambient>0.2 0.8 0.4 1</ambient><diffuse>0.2 0.8 0.4 1</diffuse></material>
+    </visual></link></model>
+  <model name="med_box_p1"><static>true</static><pose>1.15 1.5 1.1 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.12 0.18 0.15</size></box></geometry>
+      <material><ambient>0.7 0.2 0.9 1</ambient><diffuse>0.7 0.2 0.9 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Croix verte pharmacie au sol -->
+  <model name="cross_h"><static>true</static><pose>5 4 0.012 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>2.4 0.45 0.005</size></box></geometry>
+      <material><ambient>0.06 0.72 0.28 1</ambient><diffuse>0.06 0.72 0.28 1</diffuse></material>
+    </visual></link></model>
+  <model name="cross_v"><static>true</static><pose>5 4 0.013 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.45 2.4 0.005</size></box></geometry>
+      <material><ambient>0.06 0.72 0.28 1</ambient><diffuse>0.06 0.72 0.28 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Ordinateur comptoir -->
+  <model name="computer_pharm"><static>true</static><pose>3.5 6.22 1.2 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.45 0.04 0.35</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.45 0.04 0.35</size></box></geometry>
+        <material><ambient>0.08 0.12 0.22 1</ambient><diffuse>0.08 0.12 0.22 1</diffuse>
+        <emissive>0.04 0.08 0.20 1</emissive></material></visual>
+    </link></model>
+  <model name="computer_pharm_base"><static>true</static><pose>3.5 6.22 0.95 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.15 0.05 0.05</size></box></geometry>
+      <material><ambient>0.3 0.3 0.3 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Chaise pharmacien -->
+  <model name="chair_pharm"><static>true</static><pose>3.5 5.8 0.44 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.22</radius><length>0.06</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.22</radius><length>0.06</length></cylinder></geometry>
+        <material><ambient>0.2 0.35 0.55 1</ambient><diffuse>0.2 0.35 0.55 1</diffuse></material></visual>
+    </link></model>
+  <model name="chair_pharm_leg"><static>true</static><pose>3.5 5.8 0.22 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><cylinder><radius>0.04</radius><length>0.45</length></cylinder></geometry>
+      <material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Beacon pharmacie (vert) -->
+  <model name="beacon_pharmacy"><static>true</static><pose>5 2 0.7 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry>
+        <material><ambient>0.08 0.86 0.32 1</ambient><diffuse>0.08 0.86 0.32 1</diffuse>
+        <emissive>0.04 0.4 0.16 1</emissive></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       RÉANIMATION — LITS MÉDICAUX
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Lit 1 -->
+  <model name="bed_r1_frame"><static>true</static><pose>15.5 18 0.38 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.0 2.1 0.76</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.0 2.1 0.76</size></box></geometry>
+        <material><ambient>0.72 0.80 0.88 1</ambient><diffuse>0.72 0.80 0.88 1</diffuse>
+        <specular>0.4 0.4 0.5 1</specular></material></visual>
+    </link></model>
+  <model name="bed_r1_mattress"><static>true</static><pose>15.5 18 0.82 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.92 2.0 0.18</size></box></geometry>
+      <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material>
+    </visual></link></model>
+  <model name="bed_r1_pillow"><static>true</static><pose>15.5 17.1 0.96 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.82 0.5 0.1</size></box></geometry>
+      <material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material>
+    </visual></link></model>
+  <!-- Couverture lit 1 -->
+  <model name="bed_r1_blanket"><static>true</static><pose>15.5 18.5 0.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.90 1.0 0.06</size></box></geometry>
+      <material><ambient>0.30 0.50 0.82 1</ambient><diffuse>0.30 0.50 0.82 1</diffuse></material>
+    </visual></link></model>
+  <!-- Pied à sérum lit 1 -->
+  <model name="iv_pole_r1"><static>true</static><pose>16.2 17.0 1.0 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.025</radius><length>2.0</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.025</radius><length>2.0</length></cylinder></geometry>
+        <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse>
+        <specular>0.8 0.8 0.8 1</specular></material></visual>
+    </link></model>
+  <!-- Poche sérum -->
+  <model name="iv_bag_r1"><static>true</static><pose>16.2 17.0 2.1 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.12 0.06 0.22</size></box></geometry>
+      <material><ambient>0.8 0.9 1.0 0.7</ambient><diffuse>0.8 0.9 1.0 0.7</diffuse></material>
+    </visual></link></model>
+
+  <!-- Lit 2 -->
+  <model name="bed_r2_frame"><static>true</static><pose>17.5 18 0.38 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.0 2.1 0.76</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.0 2.1 0.76</size></box></geometry>
+        <material><ambient>0.72 0.80 0.88 1</ambient><diffuse>0.72 0.80 0.88 1</diffuse>
+        <specular>0.4 0.4 0.5 1</specular></material></visual>
+    </link></model>
+  <model name="bed_r2_mattress"><static>true</static><pose>17.5 18 0.82 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.92 2.0 0.18</size></box></geometry>
+      <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material>
+    </visual></link></model>
+  <model name="bed_r2_pillow"><static>true</static><pose>17.5 17.1 0.96 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.82 0.5 0.1</size></box></geometry>
+      <material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material>
+    </visual></link></model>
+  <model name="bed_r2_blanket"><static>true</static><pose>17.5 18.5 0.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.90 1.0 0.06</size></box></geometry>
+      <material><ambient>0.82 0.28 0.28 1</ambient><diffuse>0.82 0.28 0.28 1</diffuse></material>
+    </visual></link></model>
+  <model name="iv_pole_r2"><static>true</static><pose>18.2 17.0 1.0 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.025</radius><length>2.0</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.025</radius><length>2.0</length></cylinder></geometry>
+        <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Lit 3 -->
+  <model name="bed_r3_frame"><static>true</static><pose>20.5 18 0.38 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.0 2.1 0.76</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.0 2.1 0.76</size></box></geometry>
+        <material><ambient>0.72 0.80 0.88 1</ambient><diffuse>0.72 0.80 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="bed_r3_mattress"><static>true</static><pose>20.5 18 0.82 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.92 2.0 0.18</size></box></geometry>
+      <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material>
+    </visual></link></model>
+  <model name="bed_r3_pillow"><static>true</static><pose>20.5 17.1 0.96 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.82 0.5 0.1</size></box></geometry>
+      <material><ambient>0.98 0.98 0.98 1</ambient><diffuse>0.98 0.98 0.98 1</diffuse></material>
+    </visual></link></model>
+  <model name="bed_r3_blanket"><static>true</static><pose>20.5 18.5 0.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.90 1.0 0.06</size></box></geometry>
+      <material><ambient>0.28 0.60 0.28 1</ambient><diffuse>0.28 0.60 0.28 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Poste infirmier réanimation -->
+  <model name="nurse_desk_r"><static>true</static><pose>18 13.5 0.42 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>3.0 0.6 0.84</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>3.0 0.6 0.84</size></box></geometry>
+        <material><ambient>0.72 0.50 0.50 1</ambient><diffuse>0.72 0.50 0.50 1</diffuse></material></visual>
+    </link></model>
+  <model name="nurse_desk_r_top"><static>true</static><pose>18 13.5 0.86 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>3.1 0.65 0.04</size></box></geometry>
+      <material><ambient>0.85 0.7 0.7 1</ambient><diffuse>0.85 0.7 0.7 1</diffuse>
+      <specular>0.4 0.3 0.3 1</specular></material>
+    </visual></link></model>
+
+  <!-- Écran monitoring réanimation -->
+  <model name="monitor_r1"><static>true</static><pose>16.8 13.22 1.4 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.5 0.04 0.35</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.5 0.04 0.35</size></box></geometry>
+        <material><ambient>0.04 0.08 0.16 1</ambient><diffuse>0.04 0.08 0.16 1</diffuse>
+        <emissive>0.02 0.08 0.20 1</emissive></material></visual>
+    </link></model>
+
+  <!-- Beacon réanimation (rouge) -->
+  <model name="beacon_reanim"><static>true</static><pose>15 12.8 0.7 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry>
+        <material><ambient>0.90 0.10 0.10 1</ambient><diffuse>0.90 0.10 0.10 1</diffuse>
+        <emissive>0.5 0.05 0.05 1</emissive></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       URGENCES — MOBILIER
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Lit urgences 1 -->
+  <model name="bed_e1_frame"><static>true</static><pose>15.5 6.5 0.38 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.0 2.1 0.76</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.0 2.1 0.76</size></box></geometry>
+        <material><ambient>0.72 0.80 0.88 1</ambient><diffuse>0.72 0.80 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="bed_e1_mattress"><static>true</static><pose>15.5 6.5 0.82 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.92 2.0 0.18</size></box></geometry>
+      <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material>
+    </visual></link></model>
+  <model name="bed_e1_blanket"><static>true</static><pose>15.5 7.0 0.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.90 1.0 0.06</size></box></geometry>
+      <material><ambient>0.90 0.50 0.10 1</ambient><diffuse>0.90 0.50 0.10 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Lit urgences 2 -->
+  <model name="bed_e2_frame"><static>true</static><pose>17.5 6.5 0.38 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.0 2.1 0.76</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.0 2.1 0.76</size></box></geometry>
+        <material><ambient>0.72 0.80 0.88 1</ambient><diffuse>0.72 0.80 0.88 1</diffuse></material></visual>
+    </link></model>
+  <model name="bed_e2_mattress"><static>true</static><pose>17.5 6.5 0.82 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.92 2.0 0.18</size></box></geometry>
+      <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material>
+    </visual></link></model>
+  <model name="bed_e2_blanket"><static>true</static><pose>17.5 7.0 0.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.90 1.0 0.06</size></box></geometry>
+      <material><ambient>0.90 0.50 0.10 1</ambient><diffuse>0.90 0.50 0.10 1</diffuse></material>
+    </visual></link></model>
+  <model name="iv_pole_e2"><static>true</static><pose>18.2 5.6 1.0 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.025</radius><length>2.0</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.025</radius><length>2.0</length></cylinder></geometry>
+        <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Chariot crash urgences (rouge vif) -->
+  <model name="crash_cart"><static>true</static><pose>21 7 0.45 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.55 0.48 0.9</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.55 0.48 0.9</size></box></geometry>
+        <material><ambient>0.9 0.05 0.05 1</ambient><diffuse>0.9 0.05 0.05 1</diffuse>
+        <specular>0.5 0.1 0.1 1</specular></material></visual>
+    </link></model>
+  <model name="crash_cart_top"><static>true</static><pose>21 7 0.92 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>0.56 0.49 0.04</size></box></geometry>
+      <material><ambient>0.7 0.04 0.04 1</ambient><diffuse>0.7 0.04 0.04 1</diffuse></material>
+    </visual></link></model>
+
+  <!-- Poste infirmier urgences -->
+  <model name="nurse_desk_e"><static>true</static><pose>20 8.6 0.42 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>3.0 0.6 0.84</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>3.0 0.6 0.84</size></box></geometry>
+        <material><ambient>0.78 0.60 0.38 1</ambient><diffuse>0.78 0.60 0.38 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Beacon urgences (orange) -->
+  <model name="beacon_emerg"><static>true</static><pose>15 7.8 0.7 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry>
+        <material><ambient>0.95 0.50 0.04 1</ambient><diffuse>0.95 0.50 0.04 1</diffuse>
+        <emissive>0.5 0.25 0.02 1</emissive></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       CONSULTATION — MOBILIER
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Bureau médecin 1 -->
+  <model name="doc_desk1"><static>true</static><pose>2.5 17.5 0.38 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.4 0.7 0.76</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.4 0.7 0.76</size></box></geometry>
+        <material><ambient>0.50 0.58 0.78 1</ambient><diffuse>0.50 0.58 0.78 1</diffuse></material></visual>
+    </link></model>
+  <model name="doc_desk1_top"><static>true</static><pose>2.5 17.5 0.78 0 0 0</pose>
+    <link name="link"><visual name="v">
+      <geometry><box><size>1.45 0.72 0.04</size></box></geometry>
+      <material><ambient>0.70 0.76 0.90 1</ambient><diffuse>0.70 0.76 0.90 1</diffuse>
+      <specular>0.4 0.4 0.5 1</specular></material>
+    </visual></link></model>
+  <!-- Écran bureau 1 -->
+  <model name="screen_c1"><static>true</static><pose>2.5 17.15 1.25 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.45 0.04 0.32</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.45 0.04 0.32</size></box></geometry>
+        <material><ambient>0.04 0.06 0.18 1</ambient><diffuse>0.04 0.06 0.18 1</diffuse>
+        <emissive>0.02 0.06 0.18 1</emissive></material></visual>
+    </link></model>
+  <!-- Chaise bureau 1 -->
+  <model name="chair_c1"><static>true</static><pose>2.5 18.5 0.44 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.22</radius><length>0.06</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.22</radius><length>0.06</length></cylinder></geometry>
+        <material><ambient>0.18 0.28 0.48 1</ambient><diffuse>0.18 0.28 0.48 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Bureau médecin 2 -->
+  <model name="doc_desk2"><static>true</static><pose>6.0 17.5 0.38 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>1.4 0.7 0.76</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>1.4 0.7 0.76</size></box></geometry>
+        <material><ambient>0.50 0.58 0.78 1</ambient><diffuse>0.50 0.58 0.78 1</diffuse></material></visual>
+    </link></model>
+  <model name="screen_c2"><static>true</static><pose>6.0 17.15 1.25 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.45 0.04 0.32</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.45 0.04 0.32</size></box></geometry>
+        <material><ambient>0.04 0.06 0.18 1</ambient><diffuse>0.04 0.06 0.18 1</diffuse>
+        <emissive>0.02 0.06 0.18 1</emissive></material></visual>
+    </link></model>
+  <model name="chair_c2"><static>true</static><pose>6.0 18.5 0.44 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.22</radius><length>0.06</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.22</radius><length>0.06</length></cylinder></geometry>
+        <material><ambient>0.18 0.28 0.48 1</ambient><diffuse>0.18 0.28 0.48 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Chaises salle d'attente (couloir N) -->
+  <model name="wait_chair1"><static>true</static><pose>3 13.5 0.44 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.45 0.42 0.88</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.45 0.42 0.88</size></box></geometry>
+        <material><ambient>0.20 0.35 0.60 1</ambient><diffuse>0.20 0.35 0.60 1</diffuse></material></visual>
+    </link></model>
+  <model name="wait_chair2"><static>true</static><pose>4 13.5 0.44 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.45 0.42 0.88</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.45 0.42 0.88</size></box></geometry>
+        <material><ambient>0.20 0.35 0.60 1</ambient><diffuse>0.20 0.35 0.60 1</diffuse></material></visual>
+    </link></model>
+  <model name="wait_chair3"><static>true</static><pose>5 13.5 0.44 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.45 0.42 0.88</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.45 0.42 0.88</size></box></geometry>
+        <material><ambient>0.20 0.35 0.60 1</ambient><diffuse>0.20 0.35 0.60 1</diffuse></material></visual>
+    </link></model>
+  <model name="wait_chair4"><static>true</static><pose>6 13.5 0.44 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.45 0.42 0.88</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.45 0.42 0.88</size></box></geometry>
+        <material><ambient>0.20 0.35 0.60 1</ambient><diffuse>0.20 0.35 0.60 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Beacon consultation (bleu) -->
+  <model name="beacon_consult"><static>true</static><pose>5 12.8 0.7 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.18</radius><length>1.4</length></cylinder></geometry>
+        <material><ambient>0.12 0.38 0.90 1</ambient><diffuse>0.12 0.38 0.90 1</diffuse>
+        <emissive>0.06 0.20 0.5 1</emissive></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PATIENTS (silhouettes humaines simplifiées)
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Patient assis salle d'attente 1 -->
+  <model name="patient1_body"><static>true</static><pose>3 13.6 0.94 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.32 0.22 0.52</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.32 0.22 0.52</size></box></geometry>
+        <material><ambient>0.80 0.56 0.44 1</ambient><diffuse>0.80 0.56 0.44 1</diffuse></material></visual>
+    </link></model>
+  <model name="patient1_head"><static>true</static><pose>3 13.62 1.42 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><sphere><radius>0.14</radius></sphere></geometry></collision>
+      <visual name="v"><geometry><sphere><radius>0.14</radius></sphere></geometry>
+        <material><ambient>0.88 0.70 0.56 1</ambient><diffuse>0.88 0.70 0.56 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Patient assis 2 -->
+  <model name="patient2_body"><static>true</static><pose>5 13.6 0.94 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.32 0.22 0.52</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.32 0.22 0.52</size></box></geometry>
+        <material><ambient>0.42 0.38 0.72 1</ambient><diffuse>0.42 0.38 0.72 1</diffuse></material></visual>
+    </link></model>
+  <model name="patient2_head"><static>true</static><pose>5 13.62 1.42 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><sphere><radius>0.14</radius></sphere></geometry></collision>
+      <visual name="v"><geometry><sphere><radius>0.14</radius></sphere></geometry>
+        <material><ambient>0.76 0.58 0.44 1</ambient><diffuse>0.76 0.58 0.44 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Infirmière au poste réanimation -->
+  <model name="nurse1_body"><static>true</static><pose>17.5 13.0 1.0 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.35 0.24 1.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.35 0.24 1.0</size></box></geometry>
+        <material><ambient>0.96 0.96 0.96 1</ambient><diffuse>0.96 0.96 0.96 1</diffuse></material></visual>
+    </link></model>
+  <model name="nurse1_head"><static>true</static><pose>17.5 13.0 1.65 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><sphere><radius>0.14</radius></sphere></geometry></collision>
+      <visual name="v"><geometry><sphere><radius>0.14</radius></sphere></geometry>
+        <material><ambient>0.82 0.64 0.50 1</ambient><diffuse>0.82 0.64 0.50 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Médecin pharmacie -->
+  <model name="pharmacist_body"><static>true</static><pose>5 6.0 1.0 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.35 0.24 1.0</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.35 0.24 1.0</size></box></geometry>
+        <material><ambient>0.92 0.92 0.94 1</ambient><diffuse>0.92 0.92 0.94 1</diffuse></material></visual>
+    </link></model>
+  <model name="pharmacist_head"><static>true</static><pose>5 6.0 1.65 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><sphere><radius>0.14</radius></sphere></geometry></collision>
+      <visual name="v"><geometry><sphere><radius>0.14</radius></sphere></geometry>
+        <material><ambient>0.72 0.56 0.44 1</ambient><diffuse>0.72 0.56 0.44 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Patient allongé réanimation (sur lit 1) -->
+  <model name="patient_lying_body"><static>true</static><pose>15.5 18.2 1.02 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.42 1.55 0.22</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.42 1.55 0.22</size></box></geometry>
+        <material><ambient>0.88 0.70 0.56 1</ambient><diffuse>0.88 0.70 0.56 1</diffuse></material></visual>
+    </link></model>
+  <model name="patient_lying_head"><static>true</static><pose>15.5 17.3 1.08 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><sphere><radius>0.13</radius></sphere></geometry></collision>
+      <visual name="v"><geometry><sphere><radius>0.13</radius></sphere></geometry>
+        <material><ambient>0.84 0.66 0.52 1</ambient><diffuse>0.84 0.66 0.52 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- ═══════════════════════════════════════════════════════
+       COULOIR — PANNEAU DIRECTIONNEL
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Panneau signalisation couloir -->
+  <model name="sign_board"><static>true</static><pose>12 10 2.4 0 0 1.5708</pose>
+    <link name="link">
+      <collision name="c"><geometry><box><size>0.04 1.2 0.5</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>0.04 1.2 0.5</size></box></geometry>
+        <material><ambient>0.12 0.22 0.50 1</ambient><diffuse>0.12 0.22 0.50 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Extincteur couloir -->
+  <model name="fire_ext"><static>true</static><pose>10.4 10 0.6 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.08</radius><length>0.5</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.08</radius><length>0.5</length></cylinder></geometry>
+        <material><ambient>0.85 0.08 0.08 1</ambient><diffuse>0.85 0.08 0.08 1</diffuse></material></visual>
+    </link></model>
+
+  <!-- Poubelle médicale couloir -->
+  <model name="medical_bin"><static>true</static><pose>13.5 8.5 0.3 0 0 0</pose>
+    <link name="link">
+      <collision name="c"><geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry></collision>
+      <visual name="v"><geometry><cylinder><radius>0.18</radius><length>0.6</length></cylinder></geometry>
+        <material><ambient>0.85 0.75 0.08 1</ambient><diffuse>0.85 0.75 0.08 1</diffuse></material></visual>
+    </link></model>
+
+</world>
+</sdf>

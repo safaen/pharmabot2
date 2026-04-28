@@ -1,0 +1,20 @@
+{
+  "comment": "PharmaBot — Objectifs de navigation par service (x, y, yaw en radians)",
+  "goals": {
+    "pharmacy":     {"x":  5.0, "y":  4.0, "yaw":  0.0, "label": "Pharmacie",    "color": "#22cc44"},
+    "consultation": {"x":  5.0, "y": 16.5, "yaw":  0.0, "label": "Consultation", "color": "#2266ff"},
+    "reanimation":  {"x": 17.0, "y": 16.5, "yaw":  3.14, "label": "Réanimation", "color": "#cc2222"},
+    "emergency":    {"x": 17.0, "y":  4.5, "yaw":  3.14, "label": "Urgences",    "color": "#cc7700"},
+    "home":         {"x":  5.0, "y":  2.0, "yaw":  0.0,  "label": "Base",        "color": "#22cc44"}
+  },
+  "patrol_sequence": [
+    "reanimation",
+    "home",
+    "emergency",
+    "home",
+    "consultation",
+    "home",
+    "reanimation",
+    "home"
+  ]
+}
