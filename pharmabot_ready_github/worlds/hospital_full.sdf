@@ -66,14 +66,24 @@
 </scene>
 
   <!-- Soleil principal -->
-  <light name="sun" type="directional">
+ <light name="sun" type="directional">
     <cast_shadows>true</cast_shadows>
-    <pose>0 0 20 0 -0.3 0.5</pose>
-    <diffuse>0.95 0.92 0.88 1</diffuse>
-    <specular>0.3 0.3 0.3 1</specular>
-    <direction>-0.3 0.2 -0.9</direction>
-    <attenuation><range>100</range><constant>0.9</constant></attenuation>
-  </light>
+
+    <pose>0 0 20 0 0 0</pose>
+
+    <!-- lumière moins agressive -->
+    <diffuse>0.3 0.3 0.35 1</diffuse>
+    <specular>0.05 0.05 0.05 1</specular>
+
+    <attenuation>
+        <range>100</range>
+        <constant>0.8</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+    </attenuation>
+
+    <direction>-0.5 0.1 -0.9</direction>
+</light>
 
   <!-- Lumières plafond — couloir central -->
   <light name="ceil_corr1" type="point">
